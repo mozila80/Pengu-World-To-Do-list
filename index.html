@@ -3,20 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OBS Game-style To-Do List</title>
+    <title>OBS Game-style To-Do List (Supabase)</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
     <style>
       body {
         margin: 0;
         background: transparent;
         font-family: "Fredoka", sans-serif;
       }
-
       .todolist-container {
         position: absolute;
         top: 50px;
@@ -32,7 +30,6 @@
           0 3px 6px rgba(0, 0, 0, 0.35);
         color: #fff;
       }
-
       .todolist-header {
         font-size: 28px;
         font-weight: 700;
@@ -44,7 +41,6 @@
           1px 1px 0 #000,
           0 2px 3px rgba(0, 0, 0, 0.9);
       }
-
       .todolist-item {
         font-size: 22px;
         margin: 6px 0;
@@ -55,12 +51,10 @@
         justify-content: space-between;
         align-items: center;
       }
-
       .todolist-item.completed {
         opacity: 0.7;
         text-decoration: line-through;
       }
-
       .todolist-item button {
         margin-left: 6px;
         font-size: 16px;
@@ -72,11 +66,9 @@
         color: #fff;
         transition: background 0.2s;
       }
-
       .todolist-item button:hover {
         background: rgba(255, 255, 255, 0.4);
       }
-
       #addButton {
         margin-top: 8px;
         font-size: 16px;
@@ -89,7 +81,6 @@
         font-weight: 700;
         transition: background 0.2s;
       }
-
       #addButton:hover {
         background: #ffffff66;
       }
@@ -103,33 +94,20 @@
     </div>
 
     <script>
-      // 🔑 Supabase Setup
-      const SUPABASE_URL = "https://lynswnaseulskfuweemj.supabase.co"; // ganti sesuai project
+      // 🔹 Supabase Setup (tidak perlu redeclare 'supabase')
+      const SUPABASE_URL = "https://lynswnaseulskfuweemj.supabase.co";
       const SUPABASE_ANON_KEY =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5bnN3bmFzZXVsc2tmdXdlZW1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NDM4NjgsImV4cCI6MjA5MDQxOTg2OH0.JjgokC0xqle9D_qbJ3fN10uUaMrCoAq0ttxo1dsa8vA"; // ganti sesuai project
-      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5bnN3bmFzZXVsc2tmdXdlZW1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NDM4NjgsImV4cCI6MjA5MDQxOTg2OH0.JjgokC0xqle9D_qbJ3fN10uUaMrCoAq0ttxo1dsa8vA";
+
+      const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       const listDiv = document.getElementById("list");
       const addBtn = document.getElementById("addButton");
 
-      // Load semua task
-      async function loadTasks() {
-        listDiv.innerHTML = "";
-        const { data: tasks, error } = await supabase
-          .from("tasks")
-          .select("*")
-          .order("created_at", { ascending: true });
-
-        if (error) return console.error(error);
-
-        tasks.forEach(renderTask);
-      }
-
-      // Render task ke DOM
+      // 🔹 Render task
       function renderTask(task) {
         const div = document.createElement("div");
         div.className = "todolist-item" + (task.completed ? " completed" : "");
-
         const span = document.createElement("span");
         span.textContent = task.text;
         div.appendChild(span);
@@ -137,7 +115,7 @@
         const checkBtn = document.createElement("button");
         checkBtn.textContent = "✅";
         checkBtn.onclick = async () => {
-          await supabase
+          await supa
             .from("tasks")
             .update({ completed: !task.completed })
             .eq("id", task.id);
@@ -148,9 +126,9 @@
         const editBtn = document.createElement("button");
         editBtn.textContent = "✏️";
         editBtn.onclick = async () => {
-          const newText = prompt("Edit task:", span.textContent);
+          const newText = prompt("Edit task:", task.text);
           if (newText !== null) {
-            await supabase
+            await supa
               .from("tasks")
               .update({ text: newText })
               .eq("id", task.id);
@@ -162,7 +140,7 @@
         const delBtn = document.createElement("button");
         delBtn.textContent = "🗑️";
         delBtn.onclick = async () => {
-          await supabase.from("tasks").delete().eq("id", task.id);
+          await supa.from("tasks").delete().eq("id", task.id);
           loadTasks();
         };
         div.appendChild(delBtn);
@@ -170,16 +148,35 @@
         listDiv.appendChild(div);
       }
 
-      // Add Item button
+      // 🔹 Load tasks
+      async function loadTasks() {
+        try {
+          const { data, error } = await supa
+            .from("tasks")
+            .select("*")
+            .order("created_at", { ascending: true });
+          if (error) throw error;
+          listDiv.innerHTML = "";
+          data.forEach(renderTask);
+        } catch (err) {
+          console.error("Supabase load error:", err.message);
+        }
+      }
+
+      // 🔹 Add task
       addBtn.onclick = async () => {
         const text = prompt("New task:");
         if (text) {
-          await supabase.from("tasks").insert({ text, completed: false });
-          loadTasks();
+          try {
+            await supa.from("tasks").insert({ text, completed: false });
+            loadTasks();
+          } catch (err) {
+            console.error("Supabase insert error:", err.message);
+          }
         }
       };
 
-      // Auto-refresh tiap 5 detik supaya OBS langsung update
+      // 🔹 Auto-refresh untuk OBS
       loadTasks();
       setInterval(loadTasks, 5000);
     </script>
