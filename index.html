@@ -7,6 +7,7 @@
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
     <style>
       body {
@@ -14,8 +15,6 @@
         background: transparent;
         font-family: "Fredoka", sans-serif;
       }
-
-      /* Container */
       .todolist-container {
         position: absolute;
         top: 50px;
@@ -29,10 +28,8 @@
           inset 0 3px 6px rgba(255, 255, 255, 0.9),
           inset 0 -4px 6px rgba(0, 0, 0, 0.25),
           0 3px 6px rgba(0, 0, 0, 0.35);
-        color: #ffffff;
+        color: #fff;
       }
-
-      /* Header */
       .todolist-header {
         font-size: 26px;
         font-weight: 700;
@@ -44,8 +41,6 @@
           1px 1px 0 #000,
           0 2px 3px rgba(0, 0, 0, 0.9);
       }
-
-      /* Item */
       .todolist-item {
         font-size: 20px;
         margin: 6px 0;
@@ -56,13 +51,10 @@
         justify-content: space-between;
         align-items: center;
       }
-
       .todolist-item.completed {
         opacity: 0.7;
         text-decoration: line-through;
       }
-
-      /* Buttons inside item */
       .todolist-item button {
         margin-left: 6px;
         font-size: 16px;
@@ -74,12 +66,9 @@
         color: #fff;
         transition: background 0.2s;
       }
-
       .todolist-item button:hover {
         background: rgba(255, 255, 255, 0.4);
       }
-
-      /* Add item button */
       #addButton {
         margin-top: 8px;
         font-size: 16px;
@@ -92,7 +81,6 @@
         font-weight: 700;
         transition: background 0.2s;
       }
-
       #addButton:hover {
         background: #ffffff66;
       }
@@ -106,83 +94,80 @@
     </div>
 
     <script>
-      const list = document.getElementById("list");
+      // 🔑 Supabase Setup
+      const SUPABASE_URL = "https://lynswnaseulskfuweemj.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5bnN3bmFzZXVsc2tmdXdlZW1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NDM4NjgsImV4cCI6MjA5MDQxOTg2OH0.JjgokC0xqle9D_qbJ3fN10uUaMrCoAq0ttxo1dsa8vA";
+      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      // Ambil data dari localStorage atau default
-      let tasks = JSON.parse(localStorage.getItem("todolist")) || [
-        { text: "Check OBS scene layout", completed: false },
-        { text: "Add game clock overlay", completed: false },
-        { text: "Test browser source in OBS", completed: false },
-      ];
+      const listDiv = document.getElementById("list");
+      const addBtn = document.getElementById("addButton");
 
-      // Render semua task
-      function renderTasks() {
-        list.innerHTML = "";
-        tasks.forEach((task, index) => {
-          createItem(task.text, task.completed, index);
-        });
+      async function loadTasks() {
+        listDiv.innerHTML = "";
+        const { data: tasks, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .order("created_at", { ascending: true });
+
+        if (error) return console.error(error);
+
+        tasks.forEach(renderTask);
       }
 
-      // Update localStorage
-      function saveTasks() {
-        localStorage.setItem("todolist", JSON.stringify(tasks));
-      }
-
-      // Buat item
-      function createItem(text, completed = false, index) {
+      function renderTask(task) {
         const div = document.createElement("div");
-        div.className = "todolist-item";
-        if (completed) div.classList.add("completed");
+        div.className = "todolist-item" + (task.completed ? " completed" : "");
 
         const span = document.createElement("span");
-        span.textContent = text;
+        span.textContent = task.text;
         div.appendChild(span);
 
-        // Centang
         const checkBtn = document.createElement("button");
         checkBtn.textContent = "✅";
-        checkBtn.onclick = () => {
-          div.classList.toggle("completed");
-          tasks[index].completed = div.classList.contains("completed");
-          saveTasks();
+        checkBtn.onclick = async () => {
+          await supabase
+            .from("tasks")
+            .update({ completed: !task.completed })
+            .eq("id", task.id);
+          loadTasks();
         };
         div.appendChild(checkBtn);
 
-        // Edit
         const editBtn = document.createElement("button");
         editBtn.textContent = "✏️";
-        editBtn.onclick = () => {
+        editBtn.onclick = async () => {
           const newText = prompt("Edit task:", span.textContent);
           if (newText !== null) {
-            span.textContent = newText;
-            tasks[index].text = newText;
-            saveTasks();
+            await supabase
+              .from("tasks")
+              .update({ text: newText })
+              .eq("id", task.id);
+            loadTasks();
           }
         };
         div.appendChild(editBtn);
 
-        // Hapus
         const delBtn = document.createElement("button");
         delBtn.textContent = "🗑️";
-        delBtn.onclick = () => {
-          tasks.splice(index, 1);
-          saveTasks();
-          renderTasks();
+        delBtn.onclick = async () => {
+          await supabase.from("tasks").delete().eq("id", task.id);
+          loadTasks();
         };
         div.appendChild(delBtn);
 
-        list.appendChild(div);
+        listDiv.appendChild(div);
       }
 
-      // Tombol add item
-      document.getElementById("addButton").onclick = () => {
-        tasks.push({ text: "New Task", completed: false });
-        saveTasks();
-        renderTasks();
+      addBtn.onclick = async () => {
+        const text = prompt("New task:");
+        if (text) {
+          await supabase.from("tasks").insert({ text });
+          loadTasks();
+        }
       };
 
-      // Render awal
-      renderTasks();
+      loadTasks();
     </script>
   </body>
 </html>
