@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OBS Game-style To-Do List (Supabase)</title>
+    <title>Pengu World Quest To-Do List</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap"
       rel="stylesheet"
@@ -18,9 +18,9 @@
       .todolist-container {
         position: absolute;
         top: 50px;
-        right: 50px;
-        min-width: 350px;
-        padding: 16px 28px;
+        left: 50px;
+        min-width: 380px;
+        padding: 20px 28px;
         border-radius: 36px;
         background: linear-gradient(to bottom, #e6f2f8 0%, #c4ddea 100%);
         border: 3px solid #9fb2bf;
@@ -33,87 +33,138 @@
       .todolist-header {
         font-size: 28px;
         font-weight: 700;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
         text-shadow:
           -1px -1px 0 #000,
           1px -1px 0 #000,
           -1px 1px 0 #000,
           1px 1px 0 #000,
           0 2px 3px rgba(0, 0, 0, 0.9);
+        cursor: pointer;
       }
-      .todolist-item {
-        font-size: 22px;
-        margin: 6px 0;
-        padding: 6px 10px;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.2);
+      .task-input-container {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        margin-bottom: 16px;
+        display: none; /* sembunyikan awalnya */
       }
-      .todolist-item.completed {
-        opacity: 0.7;
-        text-decoration: line-through;
-      }
-      .todolist-item button {
-        margin-left: 6px;
+      .task-input-container input {
+        flex: 1;
+        padding: 8px 12px;
         font-size: 16px;
-        cursor: pointer;
+        border-radius: 12px;
         border: none;
-        border-radius: 4px;
-        padding: 2px 6px;
-        background: rgba(255, 255, 255, 0.2);
-        color: #fff;
-        transition: background 0.2s;
+        margin-right: 8px;
+        outline: none;
       }
-      .todolist-item button:hover {
-        background: rgba(255, 255, 255, 0.4);
-      }
-      #addButton {
-        margin-top: 8px;
+      .task-input-container button {
         font-size: 16px;
-        padding: 6px 12px;
-        cursor: pointer;
+        padding: 8px 14px;
+        border-radius: 12px;
         border: none;
-        border-radius: 8px;
+        cursor: pointer;
         background: #ffffff33;
         color: #fff;
         font-weight: 700;
         transition: background 0.2s;
       }
-      #addButton:hover {
+      .task-input-container button:hover {
         background: #ffffff66;
+      }
+      .todolist-item {
+        font-size: 20px;
+        margin: 6px 0;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.2s;
+      }
+      .todolist-item:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+      .todolist-item.completed span {
+        text-decoration: line-through;
+        opacity: 0.7;
+      }
+      .task-buttons {
+        display: flex;
+        gap: 6px;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .todolist-item:hover .task-buttons {
+        opacity: 1;
+      }
+      .task-buttons button {
+        font-size: 18px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        transition: background 0.2s;
+      }
+      .task-buttons button:hover {
+        background: rgba(255, 255, 255, 0.45);
+      }
+      .edit-input {
+        flex: 1;
+        font-size: 20px;
+        padding: 4px 8px;
+        border-radius: 8px;
+        border: none;
+        outline: none;
       }
     </style>
   </head>
   <body>
     <div class="todolist-container">
-      <div class="todolist-header">Pengu World Quest List</div>
+      <div class="todolist-header" id="toggleInput">
+        Pengu World Quest To-Do List ➕
+      </div>
+      <div class="task-input-container" id="taskInputContainer">
+        <input id="taskInput" type="text" placeholder="Add new task" />
+        <button id="addButton">Add</button>
+      </div>
       <div id="list"></div>
-      <button id="addButton">➕ Add Item</button>
     </div>
 
     <script>
-      // 🔹 Supabase Setup (tidak perlu redeclare 'supabase')
       const SUPABASE_URL = "https://lynswnaseulskfuweemj.supabase.co";
       const SUPABASE_ANON_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5bnN3bmFzZXVsc2tmdXdlZW1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NDM4NjgsImV4cCI6MjA5MDQxOTg2OH0.JjgokC0xqle9D_qbJ3fN10uUaMrCoAq0ttxo1dsa8vA";
-
       const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       const listDiv = document.getElementById("list");
       const addBtn = document.getElementById("addButton");
+      const taskInput = document.getElementById("taskInput");
+      const taskInputContainer = document.getElementById("taskInputContainer");
+      const toggleInput = document.getElementById("toggleInput");
 
-      // 🔹 Render task
-      function renderTask(task) {
+      toggleInput.addEventListener("click", () => {
+        taskInputContainer.style.display =
+          taskInputContainer.style.display === "flex" ? "none" : "flex";
+        if (taskInputContainer.style.display === "flex") taskInput.focus();
+      });
+
+      function renderTask(task, index) {
         const div = document.createElement("div");
         div.className = "todolist-item" + (task.completed ? " completed" : "");
+
         const span = document.createElement("span");
-        span.textContent = task.text;
+        span.textContent = `${index + 1}. ${task.text}`;
         div.appendChild(span);
 
+        const buttonContainer = document.createElement("div");
+        buttonContainer.className = "task-buttons";
+
+        // ✅ Complete
         const checkBtn = document.createElement("button");
         checkBtn.textContent = "✅";
+        checkBtn.title = "Complete";
         checkBtn.onclick = async () => {
           await supa
             .from("tasks")
@@ -121,34 +172,45 @@
             .eq("id", task.id);
           loadTasks();
         };
-        div.appendChild(checkBtn);
+        buttonContainer.appendChild(checkBtn);
 
+        // ✏️ Edit
         const editBtn = document.createElement("button");
         editBtn.textContent = "✏️";
-        editBtn.onclick = async () => {
-          const newText = prompt("Edit task:", task.text);
-          if (newText !== null) {
+        editBtn.title = "Edit";
+        editBtn.onclick = () => {
+          const input = document.createElement("input");
+          input.className = "edit-input";
+          input.value = task.text;
+          div.replaceChild(input, span);
+          input.focus();
+          input.addEventListener("blur", async () => {
             await supa
               .from("tasks")
-              .update({ text: newText })
+              .update({ text: input.value })
               .eq("id", task.id);
             loadTasks();
-          }
+          });
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") input.blur();
+          });
         };
-        div.appendChild(editBtn);
+        buttonContainer.appendChild(editBtn);
 
+        // 🗑️ Delete
         const delBtn = document.createElement("button");
         delBtn.textContent = "🗑️";
+        delBtn.title = "Delete";
         delBtn.onclick = async () => {
           await supa.from("tasks").delete().eq("id", task.id);
           loadTasks();
         };
-        div.appendChild(delBtn);
+        buttonContainer.appendChild(delBtn);
 
+        div.appendChild(buttonContainer);
         listDiv.appendChild(div);
       }
 
-      // 🔹 Load tasks
       async function loadTasks() {
         try {
           const { data, error } = await supa
@@ -157,26 +219,28 @@
             .order("created_at", { ascending: true });
           if (error) throw error;
           listDiv.innerHTML = "";
-          data.forEach(renderTask);
+          data.forEach((task, index) => renderTask(task, index));
         } catch (err) {
           console.error("Supabase load error:", err.message);
         }
       }
 
-      // 🔹 Add task
       addBtn.onclick = async () => {
-        const text = prompt("New task:");
-        if (text) {
-          try {
-            await supa.from("tasks").insert({ text, completed: false });
-            loadTasks();
-          } catch (err) {
-            console.error("Supabase insert error:", err.message);
-          }
+        const text = taskInput.value.trim();
+        if (!text) return;
+        try {
+          await supa.from("tasks").insert({ text, completed: false });
+          taskInput.value = "";
+          loadTasks();
+        } catch (err) {
+          console.error("Supabase insert error:", err.message);
         }
       };
 
-      // 🔹 Auto-refresh untuk OBS
+      taskInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") addBtn.click();
+      });
+
       loadTasks();
       setInterval(loadTasks, 5000);
     </script>
